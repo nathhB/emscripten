@@ -229,7 +229,7 @@ var LibraryPThread = {
     //                    the workers have been initialized and are
     //                    ready to host pthreads.
     loadWasmModuleToWorker: function(worker, onFinishedLoading) {
-      worker.onmessage = function(e) {
+      worker.onmessage = (e) => {
         var d = e['data'];
         var cmd = d['cmd'];
         // Sometimes we need to backproxy events to the calling thread (e.g.
@@ -294,7 +294,7 @@ var LibraryPThread = {
         PThread.currentProxiedOperationCallerThread = undefined;
       };
 
-      worker.onerror = function(e) {
+      worker.onerror = (e) => {
         err('pthread sent an error! ' + e.filename + ':' + e.lineno + ': ' + e.message);
         throw e;
       };
@@ -566,7 +566,7 @@ var LibraryPThread = {
     msg.moduleCanvasId = threadParams.moduleCanvasId;
     msg.offscreenCanvases = threadParams.offscreenCanvases;
 #endif
-    worker.runPthread = function() {
+    worker.runPthread = () => {
       // Ask the worker to start executing its pthread entry point function.
       msg.time = performance.now();
       worker.postMessage(msg, threadParams.transferList);
