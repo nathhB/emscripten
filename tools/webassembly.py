@@ -43,6 +43,10 @@ def readSLEB(iobuf):
   return leb128.i.decode_reader(iobuf)[0]
 
 
+class Type(IntEnum):
+  FUNCREF = 0x70 # # -0x10
+
+
 class SecType(IntEnum):
   CUSTOM = 0
   TYPE = 1
@@ -80,6 +84,7 @@ Limits = namedtuple('Limits', ['flags', 'initial', 'maximum'])
 Import = namedtuple('Import', ['kind', 'module', 'field'])
 Export = namedtuple('Export', ['name', 'kind', 'index'])
 Dylink = namedtuple('Dylink', ['mem_size', 'mem_align', 'table_size', 'table_align', 'needed', 'export_info', 'import_info'])
+Table = namedtuple('Table', ['elem_type', 'limits'])
 
 
 class Module:
@@ -247,6 +252,22 @@ class Module:
         assert False
 
     return imports
+
+  def get_tables(self):
+    table_section = next((s for s in self.sections() if s.type == SecType.TABLE), None)
+    if not table_section:
+      return []
+
+    self.seek(table_section.offset)
+    num_tables = self.readULEB()
+    tables = []
+    for i in range(num_tables):
+      elem_type = Type(self.readULEB())
+      limits = self.readLimits()
+      tables.append(Table(elem_type, limits))
+
+    return tables
+
 
 
 def parse_dylink_section(wasm_file):

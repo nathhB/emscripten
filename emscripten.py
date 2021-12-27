@@ -385,6 +385,40 @@ def remove_trailing_zeros(memfile):
   utils.write_binary(memfile, mem_data[:end])
 
 
+def extract_metadata(filename):
+  module = webassembly.Module(filename)
+  export_names = []
+  tablesize = None
+  exports = module.get_exports()
+  for e in exports:
+    if e.kind == webassembly.ExternType.FUNC:
+      export_names.append(e.name)
+      if e.name == 'main':
+        print(e)
+    elif e.kind == webassembly.ExternType.TABLE:
+      table = module.get_tables()[e.index]
+      tablesize = table.limits.initial
+  imports = []
+  for i in module.get_imports():
+    if i.kind == webassembly.ExternType.FUNC:
+      imports.append(i.field)
+  for i in module.functions():
+  # If main does not read its parameters, it will just be a stub that
+  # calls __original_main (which has no parameters).
+  metadata = {}
+  metadata['asmConsts'] = {}
+  metadata['declares'] = imports
+  metadata['emJsFuncs'] = {}
+  metadata['exports'] = export_names
+  metadata['features'] = []
+  metadata['globalImports'] = []
+  metadata['invokeFuncs'] = []
+  metadata['mainReadsParams'] = 1
+  metadata['namedGlobals'] = {}
+  #print("Metadata parsed: " + pprint.pformat(metadata))
+  return metadata
+
+
 def finalize_wasm(infile, outfile, memfile, DEBUG):
   building.save_intermediate(infile, 'base.wasm')
   # tell binaryen to look at the features section, and if there isn't one, to use MVP
@@ -440,11 +474,25 @@ def finalize_wasm(infile, outfile, memfile, DEBUG):
 
   if settings.DEBUG_LEVEL >= 3:
     args.append('--dwarf')
+
   stdout = building.run_binaryen_command('wasm-emscripten-finalize',
                                          infile=infile,
                                          outfile=outfile if modify_wasm else None,
                                          args=args,
                                          stdout=subprocess.PIPE)
+  metadata = load_metadata_wasm(stdout, DEBUG)
+  pymetadata = extract_metadata(infile)
+  if sorted(metadata.keys()) != sorted(pymetadata.keys()):
+    print(sorted(metadata.keys()))
+    print(sorted(pymetadata.keys()))
+    exit_with_error('xxx')
+  for key in metadata:
+    if metadata[key] != pymetadata[key]:
+      print(key)
+      print(metadata[key])
+      print(pymetadata[key])
+      exit_with_error('xxx')
+
   if modify_wasm:
     building.save_intermediate(infile, 'post_finalize.wasm')
   elif infile != outfile:
@@ -459,7 +507,7 @@ def finalize_wasm(infile, outfile, memfile, DEBUG):
     # the dynamic linking case, our loader zeros it out)
     remove_trailing_zeros(memfile)
 
-  return load_metadata_wasm(stdout, DEBUG)
+  return metadata
 
 
 def create_asm_consts(metadata):
