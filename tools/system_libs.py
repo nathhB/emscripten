@@ -918,7 +918,7 @@ class libc(DebugLibrary, AsanInstrumentedLibrary, MuslInternalLibrary, MTLibrary
 
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/exit',
-        filenames=['_Exit.c'])
+        filenames=['_Exit.c', 'atexit.c'])
 
     libc_files += files_in_path(
         path='system/lib/libc/musl/src/ldso',
@@ -1562,7 +1562,7 @@ class libstandalonewasm(MuslInternalLibrary):
     # including fprintf etc.
     files += files_in_path(
         path='system/lib/libc/musl/src/exit',
-        filenames=['assert.c', 'atexit.c', 'exit.c'])
+        filenames=['assert.c', 'exit.c'])
     return files
 
   def can_use(self):

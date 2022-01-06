@@ -2336,6 +2336,9 @@ def phase_linker_setup(options, state, newargs, settings_map):
     # always does.
     settings.DEFAULT_LIBRARY_FUNCS_TO_INCLUDE += ['$callRuntimeCallbacks']
 
+  if settings.EXIT_RUNTIME and not settings.STANDALONE_WASM:
+    settings.REQUIRED_EXPORTS += ['__funcs_on_exit']
+
   # various settings require malloc/free support from JS
   if settings.RELOCATABLE or \
      settings.BUILD_AS_WORKER or \
